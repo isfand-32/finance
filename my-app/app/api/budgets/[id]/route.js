@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import { sql, eq } from 'drizzle-orm';
-import { budgets, Expenses } from '/lib/db/schema';
+import { sql, eq, and } from 'drizzle-orm';
+import { db, budgets, expenses } from '../../../../lib/db/index.js';
 import { getTableColumns } from 'drizzle-orm';
-
-// Database connection
-const connectionString = 'postgresql://neondb_owner:npg_ubR4Q3gUZYOJ@ep-noisy-mouse-a1tuaq3h.ap-southeast-1.aws.neon.tech/Expense-tracker?sslmode=require&channel_binding=require';
-const client = postgres(connectionString);
-const db = drizzle(client, { schema: { budgets, Expenses } });
 
 export async function GET(request, { params }) {
   try {
@@ -16,28 +9,102 @@ export async function GET(request, { params }) {
     const email = searchParams.get('email');
     const budgetId = params.id;
 
+    console.log('API: Requested budget ID:', budgetId);
+    console.log('API: User email:', email);
+
     if (!email || !budgetId) {
       return NextResponse.json({ error: 'Email and budget ID are required' }, { status: 400 });
     }
 
-    const result = await db.select({
-      ...getTableColumns(budgets),
-      totalSpend: sql`COALESCE(sum(${Expenses.amount}), 0)`.mapWith(Number),
-      totalBudget: sql`count(${Expenses.id})`.mapWith(Number),
-    })
-    .from(budgets)
-    .leftJoin(Expenses, eq(budgets.id, Expenses.budgetId))
-    .where(eq(budgets.id, parseInt(budgetId)))
-    .where(eq(budgets.createdBy, email))
-    .groupBy(budgets.id, budgets.name, budgets.amount, budgets.icon, budgets.createdBy);
+    // First get the budget
+    const budgetResult = await db.select()
+      .from(budgets)
+      .where(and(
+        eq(budgets.id, parseInt(budgetId)),
+        eq(budgets.createdBy, email)
+      ));
 
-    if (result.length === 0) {
+    if (budgetResult.length === 0) {
       return NextResponse.json({ error: 'Budget not found' }, { status: 404 });
     }
 
-    return NextResponse.json(result[0]);
+    const budget = budgetResult[0];
+
+    // Then get expenses for this budget
+    const expensesResult = await db.select({
+      totalSpend: sql`COALESCE(sum(${expenses.amount}), 0)`.mapWith(Number),
+      expenseCount: sql`count(${expenses.id})`.mapWith(Number),
+    })
+    .from(expenses)
+    .where(eq(expenses.budgetId, parseInt(budgetId)));
+
+    const result = {
+      ...budget,
+      totalSpend: expensesResult[0]?.totalSpend || 0,
+      expenseCount: expensesResult[0]?.expenseCount || 0,
+    };
+
+    console.log('API: Final result:', result);
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching budget:', error);
     return NextResponse.json({ error: 'Failed to fetch budget' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request, { params }) {
+  try {
+    const budgetId = parseInt(params.id);
+    
+    if (isNaN(budgetId)) {
+      return NextResponse.json({ error: 'Invalid budget ID' }, { status: 400 });
+    }
+
+    // First delete all expenses associated with this budget
+    await db.delete(expenses)
+      .where(eq(expenses.budgetId, budgetId));
+
+    // Then delete the budget
+    const result = await db.delete(budgets)
+      .where(eq(budgets.id, budgetId))
+      .returning();
+
+    if (result && result.length > 0) {
+      return NextResponse.json({ success: true, message: 'Budget deleted successfully' });
+    } else {
+      return NextResponse.json({ error: 'Budget not found' }, { status: 404 });
+    }
+  } catch (error) {
+    console.error('Error deleting budget:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete budget' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request, { params }) {
+  try {
+    const { id } = params;
+    const { name, amount, icon } = await request.json();
+
+    const result = await db.update(budgets)
+      .set({
+        name: name,
+        amount: amount,
+        icon: icon,
+      })
+      .where(eq(budgets.id, parseInt(id)))
+      .returning();
+
+    if (result && result.length > 0) {
+      return NextResponse.json({ success: true, budget: result[0] });
+    } else {
+      return NextResponse.json({ success: false, error: 'Budget not found' }, { status: 404 });
+    }
+  } catch (error) {
+    console.error('Error updating budget:', error);
+    return NextResponse.json({ success: false, error: 'Failed to update budget' }, { status: 500 });
   }
 } 

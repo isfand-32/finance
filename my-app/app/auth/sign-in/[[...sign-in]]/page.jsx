@@ -12,7 +12,7 @@ export default function Page() {
         
         <div className="bg-white py-8 px-6 shadow rounded-lg sm:px-10">
           <SignIn 
-            redirectUrl="/dashboard"
+            fallbackRedirectUrl="/dashboard"
             appearance={{
               elements: {
                 formButtonPrimary: 

@@ -10,7 +10,7 @@ export const budgets = pgTable('budgets', {
   createdBy: varchar('createdBy').notNull(),
 });
 
-export const Expenses = pgTable('expenses', {
+export const expenses = pgTable('expenses', {
   id: serial('id').primaryKey(),
   name: varchar('name').notNull(),
   amount: numeric('amount').notNull().default(0),

@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
 import { sql, eq, desc } from 'drizzle-orm';
-import { budgets, Expenses } from '/lib/db/schema';
+import { db, budgets, expenses } from '../../../lib/db/index.js';
 import { getTableColumns } from 'drizzle-orm';
-
-// Database connection
-const connectionString = 'postgresql://neondb_owner:npg_ubR4Q3gUZYOJ@ep-noisy-mouse-a1tuaq3h.ap-southeast-1.aws.neon.tech/Expense-tracker?sslmode=require&channel_binding=require';
-const client = postgres(connectionString);
-const db = drizzle(client, { schema: { budgets, Expenses } });
 
 export async function POST(req) {
   try {
@@ -45,11 +38,11 @@ export async function GET(request) {
 
     const result = await db.select({
       ...getTableColumns(budgets),
-      totalSpend: sql`COALESCE(sum(${Expenses.amount}), 0)`.mapWith(Number),
-      totalBudget: sql`count(${Expenses.id})`.mapWith(Number),
+      totalSpend: sql`COALESCE(sum(${expenses.amount}), 0)`.mapWith(Number),
+      expenseCount: sql`count(${expenses.id})`.mapWith(Number),
     })
     .from(budgets)
-    .leftJoin(Expenses, eq(budgets.id, Expenses.budgetId))
+    .leftJoin(expenses, eq(budgets.id, expenses.budgetId))
     .where(eq(budgets.createdBy, email))
     .groupBy(budgets.id, budgets.name, budgets.amount, budgets.icon, budgets.createdBy)
     .orderBy(desc(budgets.id));

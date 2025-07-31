@@ -1,5 +1,4 @@
-import { db } from '/lib/db';
-import { budgets, Expenses } from '/lib/db/schema';
+import { db, budgets, expenses } from '../../../../../lib/db/index.js';
 import { eq, desc, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
@@ -27,17 +26,17 @@ export async function GET(request, { params }) {
     
     // Get expenses for this budget
     const expensesResult = await db.select()
-      .from(Expenses)
-      .where(eq(Expenses.budgetId, parseInt(id)))
-      .orderBy(desc(Expenses.id));
+      .from(expenses)
+      .where(eq(expenses.budgetId, parseInt(id)))
+      .orderBy(desc(expenses.id));
 
     // Get total spend for this budget
     const spendResult = await db.select({
-      totalSpend: sql`COALESCE(sum(${Expenses.amount}), 0)`.mapWith(Number),
-      totalExpenses: sql`count(${Expenses.id})`.mapWith(Number),
+      totalSpend: sql`COALESCE(sum(${expenses.amount}), 0)`.mapWith(Number),
+      totalExpenses: sql`count(${expenses.id})`.mapWith(Number),
     })
-      .from(Expenses)
-      .where(eq(Expenses.budgetId, parseInt(id)));
+      .from(expenses)
+      .where(eq(expenses.budgetId, parseInt(id)));
 
     const totalSpend = spendResult[0]?.totalSpend || 0;
     const totalExpenses = spendResult[0]?.totalExpenses || 0;

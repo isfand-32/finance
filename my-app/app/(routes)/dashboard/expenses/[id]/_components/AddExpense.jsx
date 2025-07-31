@@ -1,27 +1,49 @@
 import React from 'react'
-import { Input } from "/ui/input"
+import { Input } from "/ui/input.jsx"
 import { useState } from 'react'
-import { Button } from "/ui/button"
+import { Button } from "/ui/button.jsx"
 import { toast } from "sonner"
 
 
-function AddExpense({budgetId, user}) {
+
+function AddExpense({budgetId, user, onExpenseAdded}) {
 
 
     const [name, setName] = useState('');
     const [amount, setAmount] = useState('');
 
     const addNewExpense = async()=>{
-        const result = await db.insert(Expenses).values({
-            name: name,
-            amount: amount,
-            budgetId: budgetId,
-            createdAt:  user?.primaryEmailAddress?.emailAddress
-        }).returning({insertedId: budgets.id});
+        try {
+            const response = await fetch('/api/expenses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: name,
+                    amount: amount,
+                    budgetId: budgetId,
+                }),
+            });
 
-        console.log(result);
-        if (result) {
-            toast.success('Expense added ');
+            setAmount('');
+            setName('');
+            const result = await response.json();
+            console.log(result);
+            if (result.success) {
+                toast.success('Expense added successfully');
+                setName('');
+                setAmount('');
+                // Call the callback to refresh the parent component
+                if (onExpenseAdded) {
+                    onExpenseAdded();
+                }
+            } else {
+                toast.error('Failed to add expense');
+            }
+        } catch (error) {
+            console.error('Error adding expense:', error);
+            toast.error('Failed to add expense');
         }
     }
     
@@ -31,11 +53,13 @@ function AddExpense({budgetId, user}) {
             <div className='mt-3'>
                 <h2 className='text-black font-medium my-1'>Expense Name</h2>
                 <Input placeholder='Enter Budget Name'
+                    value={name}
                     onChange={(e) => setName(e.target.value)} />
             </div>
             <div className='mt-3'>
                 <h2 className='text-black font-medium my-1'>Expense Amount</h2>
                 <Input placeholder='e.g. 1000$'
+                    value={amount}
                     onChange={(e) => setAmount(e.target.value)} />
             </div>
             <Button disabled={!(name&&amount)} 

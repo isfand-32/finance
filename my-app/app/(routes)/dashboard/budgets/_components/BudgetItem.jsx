@@ -1,29 +1,34 @@
 import React from 'react'
 import Link from 'next/link'
+
 function BudgetItem({ budget }) {
-
     return (
-        <Link href={`/dashboard/expenses/`+budget?.id} className='p-5 border rounded-lg hover:shadow-md cursor-pointer'>
-            <div className='flex gap-2 items-center justify-between'>
-                <div className='flex items-center gap-2'>
-                    <h2 className='text-2xl p-3 bg-slate-100 rounded-full'>{budget?.icon}</h2>
+        <Link href={`/dashboard/expenses/` + budget?.id} className='block p-4 border rounded-lg hover:shadow-md transition-all duration-200 bg-white'>
+            <div className='flex items-center justify-between mb-3'>
+                <div className='flex items-center gap-3'>
+                    <div className='text-xl p-2 bg-slate-100 rounded-full w-10 h-10 flex items-center justify-center'>
+                        {budget?.icon}
+                    </div>
                     <div>
-                        <h2 className='font-bold'>{budget.name}</h2>
-                        <h2 className='text- sm text-gray-500'>{budget.totalBudget} Item</h2>
-
+                        <h2 className='font-semibold text-gray-900'>{budget.name}</h2>
+                        <p className='text-sm text-gray-500'>{budget.expenseCount || 0} Item</p>
                     </div>
                 </div>
                 <h2 className='text-lg font-bold text-primary'>${budget.amount}</h2>
             </div>
 
-            <div className='mt-5 '>
-                <div className='flex items-center justify-between mb-3'>
-                    <h2 className='text-xs text-slate-400'>${budget.totalSpend?budget.totalSpend:0} Spent</h2>
-                    <h2 className='text-xs text-slate-400'>${budget.amount-budget.totalSpend} Remaining</h2>
+            <div className='space-y-2'>
+                <div className='flex items-center justify-between text-xs text-gray-500'>
+                    <span>${budget.totalSpend ? budget.totalSpend : 0} Spent</span>
+                    <span>${budget.amount - (budget.totalSpend || 0)} Remaining</span>
                 </div>
-                <div className='w-full bg-slate-300 h-2 rounded-full'>
-                <div className='w-[40%] bg-primary h-2 rounded-full'>
-                    </div>
+                <div className='w-full bg-slate-200 h-1.5 rounded-full overflow-hidden'>
+                    <div
+                        className='bg-primary h-full rounded-full transition-all duration-300'
+                        style={{
+                            width: `${budget.amount > 0 ? Math.min((budget.totalSpend || 0) / budget.amount * 100, 100) : 0}%`
+                        }}
+                    />
                 </div>
             </div>
         </Link>

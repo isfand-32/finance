@@ -8,14 +8,14 @@ import {
     DialogTitle,
     DialogTrigger,
     DialogFooter,
-  } from "/components/ui/dialog"
+  } from "/components/ui/dialog.jsx"
 import EmojiPicker from 'emoji-picker-react'
-import { Button } from "/ui/button"
-import { Input } from "/ui/input"
+import { Button } from "/ui/button.jsx"
+import { Input } from "/ui/input.jsx"
 import { useUser } from "@clerk/nextjs"
 import { toast } from "sonner"
 
-function CreateBudget() {
+function CreateBudget({ refreshData }) {
 
     const [emojiIcon, setEmojiIcon] = useState('😊');
     const [openEmojiPicker, setOpenEmojiPicker] = useState(false);
@@ -51,6 +51,10 @@ function CreateBudget() {
           setName('');
           setAmount('');
           setEmojiIcon('😊');
+          // Refresh the budget list
+          if (refreshData) {
+            refreshData();
+          }
         } else {
           toast('Failed to create budget. Please try again.');
         }

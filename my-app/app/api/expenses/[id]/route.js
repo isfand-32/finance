@@ -1,5 +1,4 @@
-import { db } from '/lib/db';
-import { Expenses } from '/lib/db/schema';
+import { db, expenses } from '../../../../lib/db/index.js';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
@@ -7,8 +6,8 @@ export async function DELETE(request, { params }) {
   try {
     const { id } = params;
     
-    const result = await db.delete(Expenses)
-      .where(eq(Expenses.id, parseInt(id)))
+    const result = await db.delete(expenses)
+      .where(eq(expenses.id, parseInt(id)))
       .returning();
     
     if (result && result.length > 0) {
